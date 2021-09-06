@@ -14,7 +14,7 @@ setup(
     author='Round Services',
     author_email='ggallard@roundservices.biz',
     license='MIT License',
-    install_requires=['python-keycloak'],
+    install_requires=['python-keycloak>=0.26.1'],
     packages=['rs.keycloak'],
     zip_safe=False,
     python_requires='>=3.0'
