@@ -1,4 +1,4 @@
-# rs-partners is available under the MIT License. https://gitlab.com/roundservices/gluu-commons/
+# rs-keycloak is available under the MIT License. https://gitlab.com/roundservices/rs-keycloak/
 # Copyright (c) 2021, Round Services LLC - https://roundservices.biz/
 #
 # Author: Gustavo J Gallardo - ggallard@roundservices.biz
