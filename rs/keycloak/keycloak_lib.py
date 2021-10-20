@@ -1,4 +1,4 @@
-# rs-keycloak is available under the MIT License. https://gitlab.com/roundservices/rs-keycloak/
+# rs-keycloak is available under the MIT License. https://github.com/RoundServices/rs-keycloak/
 # Copyright (c) 2021, Round Services LLC - https://roundservices.biz/
 #
 # Author: Gustavo J Gallardo - ggallard@roundservices.biz
