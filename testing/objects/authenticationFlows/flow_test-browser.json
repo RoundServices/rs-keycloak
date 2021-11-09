@@ -1,0 +1,18 @@
+{
+	"alias": "test-browser",
+	"description": "test-browser",
+	"providerId": "basic-flow",
+	"topLevel": true,
+	"builtIn": false,
+	"authenticationExecutions": [
+		{
+			"providerId": "auth-cookie",
+			"requirement": "ALTERNATIVE",
+			"index": 0
+		},
+		{
+			"alias": "test-browser-form",
+			"requirement": "ALTERNATIVE"
+		}
+	]
+}

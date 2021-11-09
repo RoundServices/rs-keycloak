@@ -1,0 +1,26 @@
+{
+  "name": "test_scope",
+  "description": "Test scope",
+  "protocol": "openid-connect",
+  "attributes": {
+	  "include.in.token.scope": "true",
+	  "display.on.consent.screen": "false"
+  },
+	"protocolMappers": [
+        {
+          "name": "member_of",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "memberOf",
+            "claim.name": "member_of",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "multivalued": "true",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+}

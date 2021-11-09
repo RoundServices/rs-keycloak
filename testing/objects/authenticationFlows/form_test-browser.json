@@ -1,0 +1,18 @@
+{
+	"alias": "test-browser-form",
+	"providerId": "basic-flow",
+	"topLevel": false,
+	"builtIn": false,
+	"authenticationExecutions": [
+		{
+			"providerId": "idp-review-profile",
+			"requirement": "REQUIRED",
+			"config": {
+				"alias": "config_alias",
+				"config": {
+					"update.profile.on.first.login": "off"
+				}
+			}
+		}
+	]
+}

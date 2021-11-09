@@ -1,0 +1,6 @@
+{
+	"clientId": "test_client_id",
+	"secret": "test_client_secret",
+	"redirectUris": [ "https://test.acme.com/oauth/callback" ],
+	"defaultClientScopes": [ "profile", "email" ]
+}
