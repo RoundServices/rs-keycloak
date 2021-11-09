@@ -16,6 +16,7 @@ URL_ADMIN_CLIENT_SERVICE_ACCOUNT_USER = URL_ADMIN_CLIENT + "/service-account-use
 URL_ADMIN_FLOW = URL_ADMIN_FLOWS + "{id}"
 URL_ADMIN_FLOWS_EXECUTION = URL_ADMIN_FLOWS_EXECUTIONS + "/execution"
 URL_ADMIN_EXECUTION = "admin/realms/{realm-name}/authentication/executions/{id}"
+URL_ADMIN_EXECUTION_CONFIG = URL_ADMIN_EXECUTION + "/config"
 URL_ADMIN_FLOWS_EXECUTIONS_FLOW = URL_ADMIN_FLOWS_EXECUTIONS + "/flow"
 
 
@@ -28,12 +29,13 @@ class RSKeycloakAdmin(KeycloakAdmin):
 # ###########################
 # Override methods
 
+	# library provides get/create/copy, but not delete
 	def delete_authentication_flow(self, flow_id):
 		"""
-		Delete authentication flow execution
+		Delete authentication flow
 
-		AuthenticationExecutionInfoRepresentation
-		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_authenticationexecutioninforepresentation
+		AuthenticationInfoRepresentation
+		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_authenticationinforepresentation
 
 		:param flow_id: authentication flow id
 		:return: Keycloak server response
@@ -43,6 +45,18 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
 
+	def get_authentication_flow_execution(self, execution_id):
+		"""
+		Get authentication flow execution.
+		:param execution_id: the execution ID
+		:return: Response(json)
+		"""
+		params_path = {"realm-name": self.realm_name, "id": execution_id}
+		data_raw = self.raw_get(URL_ADMIN_EXECUTION.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError)
+
+
+	# library provides update/create, but not delete
 	def delete_authentication_flow_execution(self, execution_id):
 		"""
 		Delete authentication flow execution
@@ -51,13 +65,14 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_authenticationexecutioninforepresentation
 
 		:param execution_id: keycloak client id (not oauth client-id)
-		:return: Keycloak server response (ClientRepresentation)
+		:return: Keycloak server response (json)
 		"""
 		params_path = {"realm-name": self.realm_name, "id": execution_id}
 		data_raw = self.raw_delete(URL_ADMIN_EXECUTION.format(**params_path))
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
 
+	# duplicate with library's create_authentication_flow_subflow ?
 	def add_authentication_flow_executions_flow(self, payload, flow_alias, skip_exists=False):
 		"""
 		Add new flow with new execution to existing flow
@@ -72,7 +87,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return data_raw.headers['Location'].split('/')[-1]
 
 
-	# this method returns ths execution id
+	# this method returns the execution id
 	def create_authentication_flow_execution(self, payload, flow_alias):
 		"""
 		Create a new authentication flow execution
@@ -90,7 +105,25 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return data_raw.headers['Location'].split('/')[-1]
 
 
-	# meethod returns 202, not 204 as expected in the method in the library
+	# library provides get/update/delete, but not create
+	def create_authenticator_config(self, payload, execution_id, skip_exists=False):
+		"""
+		Create a new authenticator configuration
+		AuthenticatorConfigRepresentation
+		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_authenticatorconfigrepresentation
+		:param payload: AuthenticatorConfigRepresentation
+		:param execution_id: Authentication flow execution id
+		:param skip_exists: If true then do not raise an error if authenticator config already exists
+		:return: Keycloak server response (AuthenticatorConfigRepresentation)
+		"""
+		params_path = {"realm-name": self.realm_name, "id": execution_id}
+		data_raw = self.raw_post(URL_ADMIN_EXECUTION_CONFIG.format(**params_path),
+									data=json.dumps(payload))
+		raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[201], skip_exists=skip_exists)
+		return data_raw.headers['Location'].split('/')[-1]
+
+
+	# method returns 202, not 204 as expected in the method in the library
 	def update_authentication_flow_executions(self, payload, flow_alias):
 		"""
 		Update an authentication flow execution
@@ -107,6 +140,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[202, 204])
 
 
+	# library provides get/create/delete, but not update
 	def update_idp(self, idp_alias, payload):
 		"""
 		Update an ID Provider
@@ -329,7 +363,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 							update_payload = {}
 							update_payload["id"] = execution_id
 							for attr, value in authentication_execution.items():
-								if attr != "alias":
+								if attr != "alias" and attr != "config":
 									self.logger.debug("Set attr: {} with value: {} in the execution_flow", attr, value)
 									update_payload[attr] = value
 							self.logger.debug("Update execution in {} with: {}", flow_alias, update_payload)
@@ -341,8 +375,16 @@ class RSKeycloakAdmin(KeycloakAdmin):
 							created_flow_execution = self.create_authentication_flow_execution(create_payload, flow_alias)
 							self.logger.trace("Created Authentication Flow Execution: {}", created_flow_execution)
 							authentication_execution["id"] = created_flow_execution
+							authentication_execution_config = ""
+							if "config" in authentication_execution:
+								authentication_execution_config = authentication_execution["config"]
+								authentication_execution.pop("config", None)
 							self.logger.debug("Updating Authentication Flow Execution using: {}", authentication_execution)
 							self.update_authentication_flow_executions(authentication_execution, flow_alias)
+							if authentication_execution_config != "":
+								self.logger.debug("Creating Authentication Flow Execution Config using: {}", authentication_execution_config)
+								self.create_authenticator_config(authentication_execution_config, created_flow_execution)
+								self.logger.trace("Created Authentication Flow Execution config: {}", authentication_execution_config)
 
 
 	def rs_get_execution_by_provider(self, flow_alias, execution_provider_id):
