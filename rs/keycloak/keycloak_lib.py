@@ -294,16 +294,6 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return False
 
 
-	def rs_get_client_scope_id(self, client_scope_name):
-		client_scopes = self.get_client_scopes()
-		for client_scope in client_scopes:
-			#self.logger.trace("rs_get_client_scope_id() client scope: {}", client_scope)
-			#self.logger.trace("rs_get_client_scope_id() client scope name: {}", client_scope["name"])
-			if client_scope["name"] == client_scope_name:
-				return client_scope["id"]
-		return None
-
-
 	def rs_component_exists(self, component_id, parent, provider_type):
 		query = {"parent":parent, "type":provider_type}
 		self.logger.trace("query: {}", query)
@@ -577,7 +567,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 					json_data = json.load(json_file)
 					self.logger.trace("Client scope definition: {}", json_data)
 					client_scope_name = json_data["name"]
-					client_scope_id = self.rs_get_client_scope_id(client_scope_name)
+					client_scope_id = self.get_client_scope_id(client_scope_name)
 					if client_scope_id is not None:
 						self.logger.debug("Client scope '{}' already exists with internal id: '{}'. Updating attributes.", client_scope_name, client_scope_id)
 						# update_client_scope() does NOT update mappers.
