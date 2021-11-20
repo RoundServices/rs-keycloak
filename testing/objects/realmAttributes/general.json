@@ -1,4 +1,6 @@
 {
-	"displayName": "sherpa",
-	"enabled": true
+	"displayName": "testrealm",
+	"enabled": true,
+	"defaultDefaultClientScopes": [ "profile", "roles" ],
+	"defaultOptionalClientScopes": [ "address", "phone" ]
 }

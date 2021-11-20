@@ -10,13 +10,17 @@ import shutil
 from keycloak import KeycloakAdmin
 # needed for override methods
 from keycloak.exceptions import raise_error_from_response, KeycloakGetError
-from keycloak.urls_patterns import URL_ADMIN_CLIENT, URL_ADMIN_FLOWS, URL_ADMIN_FLOWS_EXECUTIONS, URL_ADMIN_IDP
+from keycloak.urls_patterns import URL_ADMIN_CLIENT, URL_ADMIN_FLOWS, URL_ADMIN_FLOWS_EXECUTIONS, URL_ADMIN_IDP, URL_ADMIN_REALM
 
 URL_ADMIN_CLIENT_SERVICE_ACCOUNT_USER = URL_ADMIN_CLIENT + "/service-account-user"
-URL_ADMIN_FLOW = URL_ADMIN_FLOWS + "{id}"
-URL_ADMIN_FLOWS_EXECUTION = URL_ADMIN_FLOWS_EXECUTIONS + "/execution"
+URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPES = URL_ADMIN_REALM + "/default-default-client-scopes"
+URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPE = URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPES + "/{id}"
+URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPES = URL_ADMIN_REALM + "/default-optional-client-scopes"
+URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPE = URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPES + "/{id}"
 URL_ADMIN_EXECUTION = "admin/realms/{realm-name}/authentication/executions/{id}"
 URL_ADMIN_EXECUTION_CONFIG = URL_ADMIN_EXECUTION + "/config"
+URL_ADMIN_FLOW = URL_ADMIN_FLOWS + "/{id}"
+URL_ADMIN_FLOWS_EXECUTION = URL_ADMIN_FLOWS_EXECUTIONS + "/execution"
 URL_ADMIN_FLOWS_EXECUTIONS_FLOW = URL_ADMIN_FLOWS_EXECUTIONS + "/flow"
 
 
@@ -28,6 +32,117 @@ class RSKeycloakAdmin(KeycloakAdmin):
 
 # ###########################
 # Override methods
+
+	# not provided by library
+	def get_realm(self):
+		"""
+		Return realm
+
+		RealmRepresentation:
+		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_realmrepresentation
+
+		:param realm_name: Realm name (not the realm id)
+		:return: RealmRepresentation
+		"""
+		params_path = {"realm-name": self.realm_name}
+		data_raw = self.raw_get(URL_ADMIN_REALM.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError)
+
+
+	# not provided by library
+	def get_default_default_client_scopes(self):
+		"""
+		Return list of default default client scopes
+
+		:return: Keycloak server response
+		"""
+		params_path = {"realm-name": self.realm_name}
+		data_raw = self.raw_get(URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPES.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError)
+
+
+	# not provided by library
+	def delete_default_default_client_scope(self, scope_id):
+		"""
+		Delete default default client scope
+
+		:param scope_id: default default client scope id
+		:return: Keycloak server response
+		"""
+		params_path = {"realm-name": self.realm_name, "id": scope_id}
+		data_raw = self.raw_delete(URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPE.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
+
+
+	# not provided by library
+	def add_default_default_client_scope(self, scope_id):
+		"""
+		Add default default client scope
+
+		:param scope_id: default default client scope id
+		:return: Keycloak server response
+		"""
+		params_path = {"realm-name": self.realm_name, "id": scope_id}
+		payload = {"realm": self.realm_name, "clientScopeId": scope_id}
+		data_raw = self.raw_put(URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPE.format(**params_path), data=json.dumps(payload))
+		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
+
+
+	# not provided by library
+	def get_default_optional_client_scopes(self):
+		"""
+		Return list of default optional client scopes
+
+		:return: Keycloak server response
+		"""
+		params_path = {"realm-name": self.realm_name}
+		data_raw = self.raw_get(URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPES.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError)
+
+
+	# not provided by library
+	def delete_default_optional_client_scope(self, scope_id):
+		"""
+		Delete default optional client scope
+
+		:param scope_id: default optional client scope id
+		:return: Keycloak server response
+		"""
+		params_path = {"realm-name": self.realm_name, "id": scope_id}
+		data_raw = self.raw_delete(URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPE.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
+
+
+	# not provided by library
+	def add_default_optional_client_scope(self, scope_id):
+		"""
+		Add default optional client scope
+
+		:param scope_id: default optional client scope id
+		:return: Keycloak server response
+		"""
+		params_path = {"realm-name": self.realm_name, "id": scope_id}
+		payload = {"realm": self.realm_name, "clientScopeId": scope_id}
+		data_raw = self.raw_put(URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPE.format(**params_path), data=json.dumps(payload))
+		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
+
+
+	def get_client_scope_id(self, client_scope_name):
+		"""
+		Get internal keycloak client id from clientScope.
+		This is required for further actions against this clientScope.
+
+		:param client_scope_name: name in ClientScopeRepresentation
+		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_clientscoperepresentation
+		:return: client_scope_id (uuid as string)
+		"""
+
+		client_scopes = self.get_client_scopes()
+		for client_scope in client_scopes:
+			if client_scope_name == client_scope['name']:
+				return client_scope["id"]
+		return None
+
 
 	# library provides get/create/copy, but not delete
 	def delete_authentication_flow(self, flow_id):
@@ -253,6 +368,46 @@ class RSKeycloakAdmin(KeycloakAdmin):
 			self.create_realm(json_data, skip_exists=True)
 
 
+	def rs_set_default_default_client_scopes(self, client_scopes):
+		self.logger.debug("Setting default default client scopes with: {}", client_scopes)
+		current_scopes = self.get_default_default_client_scopes()
+		self.logger.trace("Current default default client scopes: {}", current_scopes)
+		for current_scope in current_scopes:
+			self.logger.trace("Processing possible removal of default default client scope. id: {}, name: {}, protocol: {}", current_scope["id"], current_scope["name"], current_scope["protocol"])
+			if current_scope["name"] not in client_scopes:
+				self.logger.debug("Deleting default default client scope: {}", current_scope["name"])
+				self.delete_default_default_client_scope(current_scope["id"])
+		for new_scope in client_scopes:
+			add_scope = True
+			for current_scope in current_scopes:
+				if current_scope["name"] == new_scope:
+					add_scope = False
+			if add_scope:
+				new_scope_id = self.get_client_scope_id(new_scope)
+				self.logger.debug("Adding default default client scope: {}, id: {}", new_scope, new_scope_id)
+				self.add_default_default_client_scope(new_scope_id)
+
+
+	def rs_set_default_optional_client_scopes(self, client_scopes):
+		self.logger.debug("Setting default optional client scopes with: {}", client_scopes)
+		current_scopes = self.get_default_optional_client_scopes()
+		self.logger.trace("Current default optional client scopes: {}", current_scopes)
+		for current_scope in current_scopes:
+			self.logger.trace("Processing possible removal of default optional client scope. id: {}, name: {}, protocol: {}", current_scope["id"], current_scope["name"], current_scope["protocol"])
+			if current_scope["name"] not in client_scopes:
+				self.logger.debug("Deleting default optional client scope: {}", current_scope["name"])
+				self.delete_default_optional_client_scope(current_scope["id"])
+		for new_scope in client_scopes:
+			add_scope = True
+			for current_scope in current_scopes:
+				if current_scope["name"] == new_scope:
+					add_scope = False
+			if add_scope:
+				new_scope_id = self.get_client_scope_id(new_scope)
+				self.logger.debug("Adding default optional client scope: {}, id: {}", new_scope, new_scope_id)
+				self.add_default_optional_client_scope(new_scope_id)
+
+
 	def rs_update_realm_attributes(self, objects_folder, realm_name, temp_file):
 		self.logger.debug("Importing realm attributes")
 		for directory_entry in sorted(os.scandir(objects_folder), key=lambda path: path.name):
@@ -262,6 +417,14 @@ class RSKeycloakAdmin(KeycloakAdmin):
 				self.local_properties.replace(temp_file)
 				with open(temp_file) as json_file:
 					json_data = json.load(json_file)
+					if "defaultDefaultClientScopes" in json_data:
+						self.logger.debug("Setting default default client scopes")
+						self.rs_set_default_default_client_scopes(json_data["defaultDefaultClientScopes"])
+						json_data.pop("defaultDefaultClientScopes")
+					if "defaultOptionalClientScopes" in json_data:
+						self.logger.debug("Setting default optional client scopes")
+						self.rs_set_default_optional_client_scopes(json_data["defaultOptionalClientScopes"])
+						json_data.pop("defaultOptionalClientScopes")
 					self.logger.trace("json_data: {}", json_data)
 					self.update_realm(realm_name, json_data)
 
