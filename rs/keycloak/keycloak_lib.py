@@ -41,7 +41,6 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		RealmRepresentation:
 		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_realmrepresentation
 
-		:param realm_name: Realm name (not the realm id)
 		:return: RealmRepresentation
 		"""
 		params_path = {"realm-name": self.realm_name}
