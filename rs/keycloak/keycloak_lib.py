@@ -33,22 +33,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 # ###########################
 # Override methods
 
-	# not provided by library
-	def get_realm(self):
-		"""
-		Return realm
-
-		RealmRepresentation:
-		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_realmrepresentation
-
-		:return: RealmRepresentation
-		"""
-		params_path = {"realm-name": self.realm_name}
-		data_raw = self.raw_get(URL_ADMIN_REALM.format(**params_path))
-		return raise_error_from_response(data_raw, KeycloakGetError)
-
-
-	# not provided by library
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/247
 	def get_default_default_client_scopes(self):
 		"""
 		Return list of default default client scopes
@@ -60,7 +45,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError)
 
 
-	# not provided by library
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/247
 	def delete_default_default_client_scope(self, scope_id):
 		"""
 		Delete default default client scope
@@ -73,7 +58,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
 
-	# not provided by library
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/247
 	def add_default_default_client_scope(self, scope_id):
 		"""
 		Add default default client scope
@@ -87,7 +72,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
 
-	# not provided by library
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/247
 	def get_default_optional_client_scopes(self):
 		"""
 		Return list of default optional client scopes
@@ -99,7 +84,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError)
 
 
-	# not provided by library
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/247
 	def delete_default_optional_client_scope(self, scope_id):
 		"""
 		Delete default optional client scope
@@ -112,7 +97,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
 
-	# not provided by library
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/247
 	def add_default_optional_client_scope(self, scope_id):
 		"""
 		Add default optional client scope
@@ -125,25 +110,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		data_raw = self.raw_put(URL_ADMIN_DEFAULT_OPTIONAL_CLIENT_SCOPE.format(**params_path), data=json.dumps(payload))
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
-
-	def get_client_scope_id(self, client_scope_name):
-		"""
-		Get internal keycloak client id from clientScope.
-		This is required for further actions against this clientScope.
-
-		:param client_scope_name: name in ClientScopeRepresentation
-		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_clientscoperepresentation
-		:return: client_scope_id (uuid as string)
-		"""
-
-		client_scopes = self.get_client_scopes()
-		for client_scope in client_scopes:
-			if client_scope_name == client_scope['name']:
-				return client_scope["id"]
-		return None
-
-
-	# library provides get/create/copy, but not delete
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/248
 	def delete_authentication_flow(self, flow_id):
 		"""
 		Delete authentication flow
@@ -159,6 +126,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
 
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/248
 	def get_authentication_flow_execution(self, execution_id):
 		"""
 		Get authentication flow execution.
@@ -170,7 +138,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return raise_error_from_response(data_raw, KeycloakGetError)
 
 
-	# library provides update/create, but not delete
+	# Not provided by library, included in https://github.com/marcospereirampj/python-keycloak/pull/248
 	def delete_authentication_flow_execution(self, execution_id):
 		"""
 		Delete authentication flow execution
@@ -184,6 +152,39 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		params_path = {"realm-name": self.realm_name, "id": execution_id}
 		data_raw = self.raw_delete(URL_ADMIN_EXECUTION.format(**params_path))
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
+
+
+	# Not provided by library, branch add-basics
+	def get_realm(self):
+		"""
+		Return realm
+
+		RealmRepresentation:
+		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_realmrepresentation
+
+		:return: RealmRepresentation
+		"""
+		params_path = {"realm-name": self.realm_name}
+		data_raw = self.raw_get(URL_ADMIN_REALM.format(**params_path))
+		return raise_error_from_response(data_raw, KeycloakGetError)
+
+
+	# Not provided by library, branch add-basics
+	def get_client_scope_id(self, client_scope_name):
+		"""
+		Get internal keycloak client id from clientScope.
+		This is required for further actions against this clientScope.
+
+		:param client_scope_name: name in ClientScopeRepresentation
+		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_clientscoperepresentation
+		:return: client_scope_id (uuid as string)
+		"""
+
+		client_scopes = self.get_client_scopes()
+		for client_scope in client_scopes:
+			if client_scope_name == client_scope['name']:
+				return client_scope["id"]
+		return None
 
 
 	# duplicate with library's create_authentication_flow_subflow ?
@@ -223,8 +224,10 @@ class RSKeycloakAdmin(KeycloakAdmin):
 	def create_authenticator_config(self, payload, execution_id, skip_exists=False):
 		"""
 		Create a new authenticator configuration
+
 		AuthenticatorConfigRepresentation
 		https://www.keycloak.org/docs-api/8.0/rest-api/index.html#_authenticatorconfigrepresentation
+
 		:param payload: AuthenticatorConfigRepresentation
 		:param execution_id: Authentication flow execution id
 		:param skip_exists: If true then do not raise an error if authenticator config already exists
@@ -264,6 +267,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 
 		:param: idp_alias: idp alias name
 		:param: payload: IdentityProviderRepresentation
+		:return: Keycloak server response
 		"""
 
 		params_path = {"realm-name": self.realm_name, "alias": idp_alias}
@@ -281,16 +285,6 @@ class RSKeycloakAdmin(KeycloakAdmin):
 			self.logger.trace("client_id: {}", client["clientId"])
 			if client["clientId"] == client_id:
 				return True
-		return False
-
-
-	def rs_delete_client(self, client_id):
-		clients = self.get_clients()
-		for client in clients:
-			self.logger.trace("client: {}", client)
-			self.logger.trace("client_id: {}", client["clientId"])
-			if client["clientId"] == client_id:
-				self.delete_client(client["id"])
 		return False
 
 
