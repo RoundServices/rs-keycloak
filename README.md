@@ -6,5 +6,5 @@
 
 ## Deploy
 ```sh
-python3 -m pip install --upgrade git+https://github.com/RoundServices/rs-keycloak.git@main
+python3 -m pip install --upgrade --force-reinstall git+https://github.com/RoundServices/rs-keycloak.git@main
 ```
