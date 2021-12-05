@@ -1,0 +1,16 @@
+{
+	"alias": "role1_only",
+	"providerId": "basic-flow",
+	"topLevel": true,
+	"builtIn": false,
+	"authenticationExecutions": [
+		{
+			"alias": "role1only_sessionorcredentials",
+			"requirement": "REQUIRED"
+		},
+		{
+			"alias": "role1only_requirerole",
+			"requirement": "CONDITIONAL"
+		}
+	]
+}

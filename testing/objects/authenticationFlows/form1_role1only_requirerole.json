@@ -1,0 +1,29 @@
+{
+	"alias": "role1only_requirerole",
+	"providerId": "basic-flow",
+	"topLevel": false,
+	"builtIn": false,
+	"authenticationExecutions": [
+		{
+			"providerId": "conditional-user-role",
+			"requirement": "REQUIRED",
+			"config": {
+				"alias": "role1only_role1missing",
+				"config": {
+					"condUserRole": "role1",
+					"negate": "true"
+				}
+			}
+		},
+		{
+			"providerId": "deny-access-authenticator",
+			"requirement": "REQUIRED",
+			"config": {
+				"alias": "role1only_accessdenied",
+				"config": {
+					"denyErrorMessage": "access_denied.role1_missing"
+				}
+			}
+		}
+	]
+}
