@@ -187,21 +187,6 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return None
 
 
-	# duplicate with library's create_authentication_flow_subflow ?
-	def add_authentication_flow_executions_flow(self, payload, flow_alias, skip_exists=False):
-		"""
-		Add new flow with new execution to existing flow
-
-		:param payload: New authentication flow / execution JSON data containing 'alias', 'type', 'provider', and 'description' attributes
-		:param flow_alias: The flow alias
-		:return: Keycloak server response
-		"""
-		params_path = {"realm-name": self.realm_name, "flow-alias": flow_alias}
-		data_raw = self.raw_post(URL_ADMIN_FLOWS_EXECUTIONS_FLOW.format(**params_path), data=json.dumps(payload))
-		raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[201], skip_exists=skip_exists)
-		return data_raw.headers['Location'].split('/')[-1]
-
-
 	# this method returns the execution id
 	def create_authentication_flow_execution(self, payload, flow_alias):
 		"""
@@ -322,22 +307,31 @@ class RSKeycloakAdmin(KeycloakAdmin):
 	def rs_get_authentication_flow(self, flow_alias):
 		authentication_flows = self.get_authentication_flows()
 		for authentication_flow in authentication_flows:
-			# self.logger.trace("authentication_flow: {}", authentication_flow)
-			# self.logger.trace("authentication_flow_id: {}", authentication_flow["id"])
-			# self.logger.debug("authentication_flow_alias: {}", authentication_flow["alias"])
+			self.logger.trace("rs_get_authentication_flow(). Searching: {}, current: {}", flow_alias, authentication_flow["alias"])
 			if authentication_flow["alias"] == flow_alias:
 				return authentication_flow
+		self.logger.debug("rs_get_authentication_flow(). Flow '{}' not found.", flow_alias)
 		return None
 
 
-	def rs_get_execution_flow(self, flow_alias, execution_flow_id):
+	def rs_get_subflow_by_id(self, flow_alias, execution_id):
 		executions = self.get_authentication_flow_executions(flow_alias)
-		self.logger.debug("Getting execution flow with id: {} from authentication flow: {}. Executions: {}", execution_flow_id, flow_alias, executions)
+		self.logger.debug("Getting execution flow with id: {} from authentication flow: {}. Executions: {}", execution_id, flow_alias, executions)
 		for execution in executions:
-			# self.logger.trace("rs_get_execution_flow() execution_flow: {}", execution)
-			# self.logger.trace("rs_get_execution_flow() execution_flow_id: {}", execution["id"])
+			self.logger.trace("rs_get_subflow_by_id(). Searching: '{}', current: '{}'.", execution_id, execution["id"])
 			if "flowId" in execution:
-				if execution["flowId"] == execution_flow_id:
+				if execution["flowId"] == execution_id:
+					return execution
+		return None
+
+
+	def rs_get_subflow_by_alias(self, flow_alias, execution_alias):
+		executions = self.get_authentication_flow_executions(flow_alias)
+		self.logger.debug("Getting subflow with alias: {} from authentication flow: {}. Executions: {}", execution_alias, flow_alias, executions)
+		for execution in executions:
+			self.logger.trace("rs_get_subflow_by_alias(). Searching: '{}' in: '{}'.", execution_alias, execution)
+			if "displayName" in execution:
+				if execution["displayName"] == execution_alias:
 					return execution
 		return None
 
@@ -471,6 +465,30 @@ class RSKeycloakAdmin(KeycloakAdmin):
 			self.logger.trace("Created execution config: {}", authentication_execution_config)
 
 
+	def rs_delete_execution(self, execution_id, flow_alias):
+		self.logger.debug("Deleting execution id: {}", execution_id)
+		execution = self.get_authentication_flow_execution(execution_id)
+		self.logger.debug("Execution to be deleted: {}", execution)
+		if "flowId" not in execution:
+			self.logger.debug("Execution is NOT subflow, deleting: {}", execution)
+			self.delete_authentication_flow_execution(execution_id)
+		else:
+			self.logger.debug("Execution is subflow, getting executions. Subflow: {}", execution)
+			subflow = self.get_authentication_flow_for_id(execution["flowId"])
+			self.logger.debug("Subflow (full): {}", subflow)
+			# delete childs first
+			if "authenticationExecutions" in subflow:
+				for authentication_execution in subflow["authenticationExecutions"]:
+					if "flowAlias" in authentication_execution:
+						self.logger.debug("Deleting subflow alias '{}'", authentication_execution["flowAlias"])
+						full_subflow = self.rs_get_subflow_by_alias(flow_alias, authentication_execution["flowAlias"])
+						self.logger.debug("Full subflow: '{}'", full_subflow)
+						self.rs_delete_execution(full_subflow["id"], flow_alias)
+			# then delete execution subflow
+			self.logger.debug("Finally deleting execution id: {}", execution_id)
+			self.delete_authentication_flow_execution(execution_id)
+
+
 	def rs_import_authentication_flows(self, objects_folder, temp_file):
 		self.logger.debug("Importing authentication flows")
 		for directory_entry in sorted(os.scandir(objects_folder), key=lambda path: path.name):
@@ -485,7 +503,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 
 					# Create flow without executions (if flow does not exist)
 					authentication_flow.pop("authenticationExecutions", None)
-					self.logger.debug("Creating Authentication Flow using: {}", authentication_flow)
+					self.logger.debug("Creating authentication flow using: {}", authentication_flow)
 					flow_alias = authentication_flow["alias"]
 					self.logger.trace("Flow alias: {}", flow_alias)
 					# create_authentication_flow() expects payload as dict, not string
@@ -497,7 +515,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 					for current_execution in current_executions:
 						if current_execution["level"] == 0:
 							self.logger.debug("Deleting execution: {}", current_execution)
-							self.delete_authentication_flow_execution(current_execution["id"])
+							self.rs_delete_execution(current_execution["id"], flow_alias)
 
 					# Add new executions
 					for authentication_execution in authentication_executions:
@@ -505,17 +523,18 @@ class RSKeycloakAdmin(KeycloakAdmin):
 						if "alias" in authentication_execution:
 							# if subflow, delete and re-create
 							execution_alias = authentication_execution["alias"]
-							execution_flow = self.rs_get_authentication_flow(execution_alias)
+							self.logger.debug("Searching subflow '{}' in flow '{}'", execution_alias, flow_alias)
+							execution_flow = self.rs_get_subflow_by_alias(flow_alias, execution_alias)
+							self.logger.debug("Subflow found: {}", execution_flow)
 							if execution_flow is not None:
-								self.delete_authentication_flow(execution_flow["id"])
+								self.rs_delete_execution(execution_flow["id"], flow_alias)
 							# add new execution flow
 							create_payload = {}
 							create_payload["alias"] = execution_alias
 							create_payload["type"] = "basic-flow"
 							self.logger.debug("Adding subflow: {}", create_payload)
-							execution_flow_id = self.add_authentication_flow_executions_flow(create_payload, flow_alias, skip_exists=False)
-							self.logger.trace("Subflow creation returned id: {}", execution_flow_id)
-							execution_flow = self.rs_get_execution_flow(flow_alias, execution_flow_id)
+							self.create_authentication_flow_subflow(create_payload, flow_alias, skip_exists=False)
+							execution_flow = self.rs_get_subflow_by_alias(flow_alias, execution_alias)
 							self.logger.trace("Current subflow: {}", execution_flow)
 							update_payload = {}
 							update_payload["id"] = execution_flow["id"]
