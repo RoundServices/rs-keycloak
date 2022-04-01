@@ -630,6 +630,19 @@ class RSKeycloakAdmin(KeycloakAdmin):
 						self.create_client(json_data, skip_exists=True)
 
 
+	def rs_import_users(self, objects_folder, temp_file):
+		self.logger.debug("Importing users from: {}", objects_folder)
+		for directory_entry in sorted(os.scandir(objects_folder), key=lambda path: path.name):
+			if directory_entry.is_file() and directory_entry.path.endswith(".json"):
+				self.logger.debug("Processing file: {}", directory_entry.path)
+				shutil.copyfile(directory_entry.path, temp_file)
+				self.local_properties.replace(temp_file)
+				with open(temp_file) as json_file:
+					json_data = json.load(json_file)
+					self.logger.trace("User definition: {}", json_data)
+					self.create_user(json_data, exist_ok=True)
+
+
 	def rs_assign_roles_to_client(self, client, role_names):
 		client_id = self.get_client_id(client)
 		self.logger.debug("client_id: {}", client_id)
