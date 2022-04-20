@@ -273,6 +273,14 @@ class RSKeycloakAdmin(KeycloakAdmin):
 		return False
 
 
+	def rs_get_client_keycloakid(self, client_id):
+		clients = self.get_clients()
+		for client in clients:
+			if client_id == client.get('clientId'):
+				return client["id"]
+		return None
+
+
 	def rs_component_exists(self, component_id, parent, provider_type):
 		query = {"parent":parent, "type":provider_type}
 		self.logger.trace("query: {}", query)
@@ -622,7 +630,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 					self.logger.trace("Client definition: {}", json_data)
 					client_id = json_data["clientId"]
 					if self.rs_client_exists(client_id):
-						client_keycloak_id = self.get_client_id(client_id)
+						client_keycloak_id = self.rs_get_client_keycloakid(client_id)
 						self.logger.debug("Client '{}' already exists with internal id: {}. Updating...", client_id, client_keycloak_id)
 						self.update_client(client_keycloak_id, json_data)
 					else:
