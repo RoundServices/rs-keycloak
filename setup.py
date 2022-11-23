@@ -8,7 +8,7 @@ from setuptools import setup
 
 setup(
     name='rs-keycloak',
-    version='1.0.20220501',
+    version='1.0.20221123',
     description='Python utilities for Keycloak',
     url='git@github.com:RoundServices/rs-keycloak.git',
     author='Round Services',

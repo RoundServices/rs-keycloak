@@ -1,5 +1,5 @@
 # rs-keycloak is available under the MIT License. https://github.com/RoundServices/rs-keycloak/
-# Copyright (c) 2021, Round Services LLC - https://roundservices.biz/
+# Copyright (c) 2022, Round Services LLC - https://roundservices.biz/
 #
 # Author: Gustavo J Gallardo - ggallard@roundservices.biz
 #
@@ -10,7 +10,7 @@ import shutil
 from keycloak import KeycloakAdmin
 # needed for override methods
 from keycloak.exceptions import raise_error_from_response, KeycloakGetError
-from keycloak.urls_patterns import URL_ADMIN_CLIENT, URL_ADMIN_FLOWS, URL_ADMIN_FLOWS_EXECUTIONS, URL_ADMIN_IDP, URL_ADMIN_REALM
+from keycloak.urls_patterns import URL_ADMIN_CLIENT, URL_ADMIN_FLOWS, URL_ADMIN_FLOWS_EXECUTIONS, URL_ADMIN_IDP, URL_ADMIN_REALM, URL_ADMIN_CLIENT_SCOPES_ADD_MAPPER
 
 URL_ADMIN_CLIENT_SERVICE_ACCOUNT_USER = URL_ADMIN_CLIENT + "/service-account-user"
 URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPES = URL_ADMIN_REALM + "/default-default-client-scopes"
@@ -140,6 +140,19 @@ class RSKeycloakAdmin(KeycloakAdmin):
 								data=json.dumps(payload))
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
+	def get_mappers_from_client_scope(self, client_scope_id):
+		"""Get a list of all mappers connected to the client scope.
+		https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_protocol_mappers_resource
+		:param client_scope_id: Client scope id
+		:type client_scope_id: str
+		:returns: Keycloak server response (ProtocolMapperRepresentation)
+		:rtype: list
+		"""
+		params_path = {"realm-name": self.realm_name, "scope-id": client_scope_id}
+		data_raw = self.raw_get(
+			URL_ADMIN_CLIENT_SCOPES_ADD_MAPPER.format(**params_path)
+		)
+		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[200])
 
 # ###########################
 # Added methods
