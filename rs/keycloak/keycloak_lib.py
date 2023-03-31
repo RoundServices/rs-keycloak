@@ -9,8 +9,12 @@ import os
 import shutil
 from keycloak import KeycloakAdmin
 # needed for override methods
-from keycloak.exceptions import raise_error_from_response, KeycloakGetError
-from keycloak.urls_patterns import URL_ADMIN_CLIENT, URL_ADMIN_FLOWS, URL_ADMIN_FLOWS_EXECUTIONS, URL_ADMIN_IDP, URL_ADMIN_REALM, URL_ADMIN_CLIENT_SCOPES_ADD_MAPPER
+from keycloak.exceptions import (
+    KeycloakOperationError,
+    KeycloakGetError,
+    raise_error_from_response
+)
+from keycloak.urls_patterns import URL_ADMIN_CLIENT, URL_ADMIN_FLOWS, URL_ADMIN_FLOWS_EXECUTIONS, URL_ADMIN_IDP, URL_ADMIN_REALM, URL_ADMIN_CLIENT_SCOPES_ADD_MAPPER, URL_ADMIN_USER_LOGOUT
 
 URL_ADMIN_CLIENT_SERVICE_ACCOUNT_USER = URL_ADMIN_CLIENT + "/service-account-user"
 URL_ADMIN_DEFAULT_DEFAULT_CLIENT_SCOPES = URL_ADMIN_REALM + "/default-default-client-scopes"
@@ -22,7 +26,16 @@ URL_ADMIN_EXECUTION_CONFIG = URL_ADMIN_EXECUTION + "/config"
 URL_ADMIN_FLOW = URL_ADMIN_FLOWS + "/{id}"
 URL_ADMIN_FLOWS_EXECUTION = URL_ADMIN_FLOWS_EXECUTIONS + "/execution"
 URL_ADMIN_FLOWS_EXECUTIONS_FLOW = URL_ADMIN_FLOWS_EXECUTIONS + "/flow"
+URL_ADMIN_SESSIONS = "admin/realms/{realm-name}/sessions"
+URL_ADMIN_SESSION = URL_ADMIN_SESSIONS + "/{id}"
 
+class KeycloakDeleteError(KeycloakOperationError):
+	"""Keycloak request delete error exception."""
+	pass
+
+class KeycloakPostError(KeycloakOperationError):
+	"""Keycloak request post error exception."""
+	pass
 
 class RSKeycloakAdmin(KeycloakAdmin):
 	def __init__(self, logger, local_properties, server_url, username=None, password=None, realm_name='master', client_id='admin-cli', verify=True, client_secret_key=None, custom_headers=None, user_realm_name=None, auto_refresh_token=None):
@@ -140,6 +153,7 @@ class RSKeycloakAdmin(KeycloakAdmin):
 								data=json.dumps(payload))
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
+
 	def get_mappers_from_client_scope(self, client_scope_id):
 		"""Get a list of all mappers connected to the client scope.
 		https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_protocol_mappers_resource
@@ -153,6 +167,22 @@ class RSKeycloakAdmin(KeycloakAdmin):
 			URL_ADMIN_CLIENT_SCOPES_ADD_MAPPER.format(**params_path)
 		)
 		return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[200])
+
+
+	def user_logout(self, user_id):
+		"""Log out the user.
+		https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_logout
+		:param user_id: User id
+		:type user_id: str
+		:returns: Keycloak server response
+		:rtype: bytes
+		"""
+		params_path = {"realm-name": self.realm_name, "id": user_id}
+		data_raw = self.connection.raw_post(
+			URL_ADMIN_USER_LOGOUT.format(**params_path), data=""
+		)
+		return raise_error_from_response(data_raw, KeycloakPostError, expected_codes=[204])
+
 
 # ###########################
 # Added methods
